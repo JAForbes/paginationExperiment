@@ -1,0 +1,23 @@
+{
+  "name": "paginationExperiment",
+  "version": "0.0.0",
+  "description": "Experienting with Pagination",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JAForbes/paginationExperiment.git"
+  },
+  "author": "JAForbes",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JAForbes/paginationExperiment/issues"
+  },
+  "homepage": "https://github.com/JAForbes/paginationExperiment",
+  "dependencies": {
+    "backbone": "^1.1.2",
+    "backbone.paginator": "^2.0.2"
+  }
+}
