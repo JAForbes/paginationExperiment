@@ -14,13 +14,14 @@ request({
   json: true,
   //convert the url params into a hash
   body:  R.pipe(
-    R.slice(1),
+    R.skip(1),
+    R.join(''),
     R.split('&'),
     R.map(R.split('=')),
-    _.zipObject
+    R.fromPairs
   )(window.location.search)
 })
-.then(R.path('resp.body.result.auth_token'))
+.then(R.path('body.result.auth_token'))
 .then(logged_in);
 
 
@@ -28,4 +29,8 @@ console.log("Reload the page with the following query params in the URL, auth_do
 
 function logged_in(auth_token){
   console.log(auth_token)
+
+  request({ url: 'https://api.dphoto.com/files', headers: { 'API-Version': '2.0', 'Auth-Token': auth_token }, json: true}).then(function(){
+    console.log(arguments)
+  })
 }
