@@ -30,9 +30,12 @@ console.log("Reload the page with the following query params in the URL, auth_do
 function logged_in(auth_token){
   console.log(auth_token)
 
-  request({ url: 'https://api.dphoto.com/files', headers: { 'API-Version': '2.0', 'Auth-Token': auth_token }, json: true})
+  var date_after = 1414254948;
+  var date_before = 1416488746;
+  var limit = 5;
+  request({ url: 'https://api.dphoto.com/files?limit='+limit+'&date_after='+date_after+'&date_before='+date_before, headers: { 'API-Version': '2.0', 'Auth-Token': auth_token }, json: true})
   .then(R.path('body.result'))
-  .then(function(files){
-    console.log(files)
-  })
+  .then(R.map(function(file){
+    console.log(file.file_created >= date_after, file.file_created <= date_before);
+  }))
 }

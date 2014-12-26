@@ -119,11 +119,14 @@ console.log("Reload the page with the following query params in the URL, auth_do
 function logged_in(auth_token){
   console.log(auth_token)
 
-  request({ url: 'https://api.dphoto.com/files', headers: { 'API-Version': '2.0', 'Auth-Token': auth_token }, json: true})
+  var date_after = 1414254948;
+  var date_before = 1416488746;
+  var limit = 5;
+  request({ url: 'https://api.dphoto.com/files?limit='+limit+'&date_after='+date_after+'&date_before='+date_before, headers: { 'API-Version': '2.0', 'Auth-Token': auth_token }, json: true})
   .then(R.path('body.result'))
-  .then(function(files){
-    console.log(files)
-  })
+  .then(R.map(function(file){
+    console.log(file.file_created >= date_after, file.file_created <= date_before);
+  }))
 }
 
 },{"backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js","backbone.paginator":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone.paginator\\lib\\backbone.paginator.js","browser-request":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\browser-request\\index.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js","promise":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\promise\\index.js","ramda":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\ramda\\ramda.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone.paginator\\lib\\backbone.paginator.js":[function(require,module,exports){
