@@ -5,6 +5,54 @@ window.R = require('ramda')
 window.Promise = require('promise')
 window.request = Promise.denodeify(require('browser-request'))
 
+ServerCollection = Backbone.Collection.extend({
+  request: function(o){
+    _.extend({ offset: 0, limit: 5 },o)
+    return {
+      meta: this.pagination(this.length,o.limit,o.offset),
+      result: this.slice(o.offset,o.offset+o.limit)
+    }
+  },
+
+  pagination: function(numberOfItems,limit,offset){
+    var page_count = numberOfItems / limit
+    var current_page = Math.floor(page_count * (offset / numberOfItems))
+    var data = {
+      current_page: current_page,
+      page_count: page_count
+    }
+    var next = offset+limit;
+    var prev = offset-limit;
+
+    if(next < numberOfItems) data.next_offset = next;
+    if(prev >= 0) data.prev_offset = prev;
+    return data;
+  }
+})
+
+log = function(){
+  var messages = _.toArray(arguments);
+  return function(value){
+    console.log.apply(console,messages.concat([value]))
+    return value;
+  }
+}
+
+exposeAs = _.curry(function(name,value){
+  window[name] = value;
+  return value;
+})
+
+create = R.construct;
+
+//convert the url params into a hash
+hashFromParams = R.pipe(
+  R.substringFrom(1),
+  R.split('&'),
+  R.map(R.split('=')),
+  R.fromPairs
+)
+
 request({
   url: 'https://api.dphoto.com/auths',
   headers: {
@@ -12,30 +60,16 @@ request({
   },
   method: "POST",
   json: true,
-  //convert the url params into a hash
-  body:  R.pipe(
-    R.skip(1),
-    R.join(''),
-    R.split('&'),
-    R.map(R.split('=')),
-    R.fromPairs
-  )(window.location.search)
+
+  body: hashFromParams(window.location.search)
 })
 .then(R.path('body.result.auth_token'))
-.then(logged_in);
-
-
-console.log("Reload the page with the following query params in the URL, auth_domain, auth_password, app_key, auth_type")
-
-function logged_in(auth_token){
-  console.log(auth_token)
-
-  var date_after = 1414254948;
-  var date_before = 1416488746;
-  var limit = 5;
-  request({ url: 'https://api.dphoto.com/files?limit='+limit+'&date_after='+date_after+'&date_before='+date_before, headers: { 'API-Version': '2.0', 'Auth-Token': auth_token }, json: true})
-  .then(R.path('body.result'))
-  .then(R.map(function(file){
-    console.log(file.file_created >= date_after, file.file_created <= date_before);
-  }))
-}
+.then( log('Auth Token retrieved: ') )
+.then(function(auth_token){
+  return request({ url: 'https://api.dphoto.com/files', headers: { 'API-Version': '2.0', 'Auth-Token': auth_token }, json: true})
+})
+.then(R.path('body.result')) //files
+.then( log('Files retrieved') )
+.then(create(ServerCollection))
+.then(exposeAs('server'))
+.then( log('ServerCollection exposed as server') )
