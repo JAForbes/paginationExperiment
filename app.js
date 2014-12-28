@@ -1,32 +1,33 @@
 window.Backbone = require('backbone')
-window.PageableCollection = require('backbone.paginator')
+Backbone.$ = require('jquery');
+
 window._ = require('lodash')
 window.R = require('ramda')
-window.Promise = require('promise')
-window.request = Promise.denodeify(require('browser-request'))
 
-ServerCollection = Backbone.Collection.extend({
-  request: function(o){
-    _.extend({ offset: 0, limit: 5 },o)
-    return {
-      meta: this.pagination(this.length,o.limit,o.offset),
-      result: this.slice(o.offset,o.offset+o.limit)
-    }
+dphoto = {};
+dphoto.Files = Backbone.Collection.extend({
+
+  url: 'https://api.dphoto.com/files',
+
+  pagination: {
+    offset: 0,
+    limit: 100
   },
 
-  pagination: function(numberOfItems,limit,offset){
-    var page_count = numberOfItems / limit
-    var current_page = Math.floor(page_count * (offset / numberOfItems))
-    var data = {
-      current_page: current_page,
-      page_count: page_count
-    }
-    var next = offset+limit;
-    var prev = offset-limit;
+  parse: R.get('result'),
 
-    if(next < numberOfItems) data.next_offset = next;
-    if(prev >= 0) data.prev_offset = prev;
-    return data;
+  fetchPrevPage: function(){
+    pagination.offset+=pagination.limit;
+    return fetchPage(this.pagination)
+  },
+
+  fetchNextPage: function(){
+    pagination.offset-=pagination.limit;
+    return fetchPage(this.pagination)
+  },
+
+  fetchPage: function(options){
+    return this.fetch()
   }
 })
 
@@ -38,12 +39,14 @@ log = function(){
   }
 }
 
-exposeAs = _.curry(function(name,value){
-  window[name] = value;
-  return value;
-})
-
-create = R.construct;
+createAuthedSync = function(auth_token){
+  var Backbone_sync = Backbone.sync;
+  function AuthedSync(method,model,options){
+    options.headers = { 'API-Version': '2.0', 'Auth-Token': auth_token };
+    return Backbone_sync(method,model,options);
+  }
+  return AuthedSync
+}
 
 //convert the url params into a hash
 hashFromParams = R.pipe(
@@ -53,23 +56,15 @@ hashFromParams = R.pipe(
   R.fromPairs
 )
 
-request({
-  url: 'https://api.dphoto.com/auths',
-  headers: {
-    'API-Version': '2.0',
-  },
-  method: "POST",
-  json: true,
-
-  body: hashFromParams(window.location.search)
+Backbone.ajax('https://api.dphoto.com/auths/',{
+  method: 'POST',
+  data: hashFromParams(window.location.search),
+  dataType: "json"
 })
-.then(R.path('body.result.auth_token'))
+.then(R.path('result.auth_token'))
 .then( log('Auth Token retrieved: ') )
-.then(function(auth_token){
-  return request({ url: 'https://api.dphoto.com/files', headers: { 'API-Version': '2.0', 'Auth-Token': auth_token }, json: true})
+.then(createAuthedSync)
+.then( log('Created pre authed Backbone.sync function:\n\n'))
+.then(function(authedSync){
+  Backbone.sync = authedSync;
 })
-.then(R.path('body.result')) //files
-.then( log('Files retrieved') )
-.then(create(ServerCollection))
-.then(exposeAs('server'))
-.then( log('ServerCollection exposed as server') )
