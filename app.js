@@ -14,20 +14,32 @@ dphoto.Files = Backbone.Collection.extend({
     limit: 100
   },
 
+  hasNext: true,
+  hasPrev: false,
+
   parse: R.get('result'),
 
   fetchPrevPage: function(){
-    pagination.offset+=pagination.limit;
-    return fetchPage(this.pagination)
+    this.pagination.offset-=this.pagination.limit;
+    return this.fetchPage(this.pagination)
   },
 
   fetchNextPage: function(){
-    pagination.offset-=pagination.limit;
-    return fetchPage(this.pagination)
+    this.pagination.offset+=this.pagination.limit;
+    return this.fetchPage(this.pagination)
+  },
+
+  onFetchPage: function(response){
+
+    this.hasPrev = this.pagination.offset > 0
+    var forwardPageHadResult = !!response.result.length;
+    var backwardPageToFirstOrLower = this.pagination.offset < 1;
+
+    this.hasNext = backwardPageToFirstOrLower || forwardPageHadResult
   },
 
   fetchPage: function(options){
-    return this.fetch()
+    return this.fetch({data: options}).then(this.onFetchPage.bind(this))
   }
 })
 
