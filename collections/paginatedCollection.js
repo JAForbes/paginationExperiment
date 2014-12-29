@@ -1,4 +1,5 @@
 var Backbone = require('Backbone');
+var p = require('lodash').partial
 
 module.exports = Backbone.Collection.extend({
 
@@ -11,47 +12,64 @@ module.exports = Backbone.Collection.extend({
     //remove: false //will not clear collection after a fetch
   },
 
-  hasNext: true,
-  hasPrev: false,
-
   parse: R.get('result'),
 
-  throwFetchError: function(direction){
-    throw "Attempted to fetch"+direction+"Page when has"+direction+" was false."
+  stats: {
+    lastRequestSize: null,
+    lastPageDirection: null,
+    pending: false
   },
 
   fetchPrevPage: function(){
-    if(files.hasPrev){
-      //todo clone, and set to pagination data if result.length > 0
-      this.pagination.data.offset-=this.pagination.data.limit;
-      return this._fetchPage(this.pagination)
-    } else {
-      this.throwFetchError('Prev')
-    }
+    return this._fetchPageDirection('Prev');
   },
 
   fetchNextPage: function(){
-    if(files.hasNext){
-      //todo clone, and set to pagination data if result.length > 0
-      this.pagination.data.offset+=this.pagination.data.limit;
-      return this._fetchPage(this.pagination)
+    return this._fetchPageDirection('Next');
+  },
+
+  hasNext: function(){
+    return this.stats.lastPageDirection == 'Next' && this.stats.lastRequestSize ||
+      this.pagination.data.offset <= 0
+  },
+
+  hasPrev: function(){
+    return this.pagination.data.offset > 0;
+  },
+
+  _onFetchPage: function(request,response){
+    this.stats.lastPageDirection = request.data.offset > this.pagination.data.offset ? 'Next' : 'Prev'
+    this.stats.lastRequestSize = response.result.length;
+    this.pagination = request;
+  },
+
+  _onFinishPageFetch: function(){
+    this.stats.pending = false;
+  },
+
+  _throwFetchError: function(direction){
+    throw "Attempted to fetch"+direction+"Page when has"+direction+"() returned false."
+  },
+
+  _fetchPageDirection: function(directionName){
+
+    var direction = ({ Next: 1, Prev: -1})[directionName]
+
+    if(this['has'+directionName]()){
+      //clone, so if the setings are incorrect, we don't lose anything
+      var pagination = _.cloneDeep(this.pagination)
+
+      pagination.data.offset += pagination.data.limit * direction;
+      return this._fetchPage(pagination)
     } else {
-      this.throwFetchError('Next')
+      this._throwFetchError(directionName)
     }
   },
 
-  onFetchPage: function(response){
-
-    this.hasPrev = this.pagination.data.offset > 0
-    var forwardPageHadResult = !!response.result.length;
-    var backwardPageToFirstOrLower = this.pagination.data.offset < 1;
-
-    this.hasNext = backwardPageToFirstOrLower || forwardPageHadResult
-  },
-
-  //internal usage
   _fetchPage: function(options){
+    this.stats.pending = true;
     return this.fetch(options || this.paginated)
-      .then(this.onFetchPage.bind(this))
+      .then(this._onFetchPage.bind(this,options))
+      .done(this._onFinishPageFetch.bind(this))
   }
 })
