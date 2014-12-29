@@ -5,19 +5,21 @@ module.exports = Backbone.Collection.extend({
 
   //Pagination ajax settings passed to fetch
   pagination: {
-    data:{
-      offset: 0,
-      limit: 100
+    //Backbone sync settings e.g. collection.fetch(pagination.sync)
+    sync: {
+      data:{
+        offset: 0,
+        limit: 100
+      },
+      //remove: false //will not clear collection after a fetch
     },
-    //remove: false //will not clear collection after a fetch
-  },
 
-  paginationState: {
-    lastRequestSize: null,
-    lastPageDirection: null,
-    pending: false
+    state: {
+      lastRequestSize: null,
+      lastPageDirection: null,
+      pending: false
+    }
   },
-
   fetchPrevPage: function(){
     return this._fetchPageDirection('Prev');
   },
@@ -27,22 +29,22 @@ module.exports = Backbone.Collection.extend({
   },
 
   hasNext: function(){
-    return this.paginationState.lastPageDirection == 'Next' && this.paginationState.lastRequestSize ||
-      this.pagination.data.offset <= 0
+    return this.pagination.state.lastPageDirection == 'Next' && this.pagination.state.lastRequestSize ||
+      this.pagination.sync.data.offset <= 0
   },
 
   hasPrev: function(){
-    return this.pagination.data.offset > 0;
+    return this.pagination.sync.data.offset > 0;
   },
 
   _onFetchPage: function(request,response){
-    this.paginationState.lastPageDirection = request.data.offset > this.pagination.data.offset ? 'Next' : 'Prev'
-    this.paginationState.lastRequestSize = response.result.length;
-    this.pagination = request;
+    this.pagination.state.lastPageDirection = request.data.offset > this.pagination.sync.data.offset ? 'Next' : 'Prev'
+    this.pagination.state.lastRequestSize = response.result.length;
+    this.pagination.sync = request;
   },
 
   _onFinishPageFetch: function(){
-    this.paginationState.pending = false;
+    this.pagination.state.pending = false;
   },
 
   _throwFetchError: function(direction){
@@ -54,18 +56,18 @@ module.exports = Backbone.Collection.extend({
     var direction = ({ Next: 1, Prev: -1})[directionName]
 
     if(this['has'+directionName]()){
-      //clone, so if the setings are incorrect, we don't lose anything
-      var pagination = cloneDeep(this.pagination)
+      //clone, so if the settings are incorrect, we don't lose anything
+      var paginationSync = cloneDeep(this.pagination.sync)
 
-      pagination.data.offset += pagination.data.limit * direction;
-      return this._fetchPage(pagination)
+      paginationSync.data.offset += paginationSync.data.limit * direction;
+      return this._fetchPage(paginationSync)
     } else {
       this._throwFetchError(directionName)
     }
   },
 
   _fetchPage: function(options){
-    this.paginationState.pending = true;
+    this.pagination.state.pending = true;
     return this.fetch(options || this.paginated)
       .then(this._onFetchPage.bind(this,options))
       .done(this._onFinishPageFetch.bind(this))
