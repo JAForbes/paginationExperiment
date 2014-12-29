@@ -24,7 +24,7 @@ module.exports = Backbone.Collection.extend({
     if(files.hasPrev){
       //todo clone, and set to pagination data if result.length > 0
       this.pagination.data.offset-=this.pagination.data.limit;
-      return this.fetchPage(this.pagination)
+      return this._fetchPage(this.pagination)
     } else {
       this.throwFetchError('Prev')
     }
@@ -34,7 +34,7 @@ module.exports = Backbone.Collection.extend({
     if(files.hasNext){
       //todo clone, and set to pagination data if result.length > 0
       this.pagination.data.offset+=this.pagination.data.limit;
-      return this.fetchPage(this.pagination)
+      return this._fetchPage(this.pagination)
     } else {
       this.throwFetchError('Next')
     }
@@ -49,8 +49,9 @@ module.exports = Backbone.Collection.extend({
     this.hasNext = backwardPageToFirstOrLower || forwardPageHadResult
   },
 
-  fetchPage: function(options){
-    return this.fetch(options)
+  //internal usage
+  _fetchPage: function(options){
+    return this.fetch(options || this.paginated)
       .then(this.onFetchPage.bind(this))
   }
 })

@@ -62,7 +62,7 @@ module.exports = Backbone.Collection.extend({
     if(files.hasPrev){
       //todo clone, and set to pagination data if result.length > 0
       this.pagination.data.offset-=this.pagination.data.limit;
-      return this.fetchPage(this.pagination)
+      return this._fetchPage(this.pagination)
     } else {
       this.throwFetchError('Prev')
     }
@@ -72,7 +72,7 @@ module.exports = Backbone.Collection.extend({
     if(files.hasNext){
       //todo clone, and set to pagination data if result.length > 0
       this.pagination.data.offset+=this.pagination.data.limit;
-      return this.fetchPage(this.pagination)
+      return this._fetchPage(this.pagination)
     } else {
       this.throwFetchError('Next')
     }
@@ -87,8 +87,9 @@ module.exports = Backbone.Collection.extend({
     this.hasNext = backwardPageToFirstOrLower || forwardPageHadResult
   },
 
-  fetchPage: function(options){
-    return this.fetch(options)
+  //internal usage
+  _fetchPage: function(options){
+    return this.fetch(options || this.paginated)
       .then(this.onFetchPage.bind(this))
   }
 })
@@ -3132,9 +3133,7 @@ module.exports = R.pipe(
 
 },{}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js":[function(require,module,exports){
 module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js")
-},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\node_modules\\underscore\\underscore.js":[function(require,module,exports){
-module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js")
-},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
+},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.1.3
  * http://jquery.com/
