@@ -1,20 +1,22 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"c:\\Users\\James\\src\\paginationExperiment\\app.js":[function(require,module,exports){
-Backbone = require('backbone')
-Backbone.$ = require('jquery');
+var Backbone = require('backbone')
+    Backbone.$ = require('jquery')
 
-_ = require('lodash')
-R = require('ramda')
+var _ = require('lodash')
+var R = require('ramda')
 //convert the url params into a hash
-hashFromParams = require('./hashFromParams')
+var hashFromParams = require('./hashFromParams')
 
-PaginatedCollection = require('./collections/paginatedCollection')
+var PaginatedCollection = require('./collections/paginatedCollection')
 
 dphoto = {}
 dphoto.Files = PaginatedCollection.extend({
-  url: 'https://api.dphoto.com/files'
+  url: 'https://api.dphoto.com/files',
+
+  parse: R.get('result')
 })
 
-authedSync = _.curry(function(Backbone_sync,auth_token,method,model,options){
+var AuthedSync = _.curry(function(Backbone_sync,auth_token,method,model,options){
   options.headers = { 'API-Version': '2.0', 'Auth-Token': auth_token };
   return Backbone_sync(method,model,options);
 })
@@ -30,14 +32,14 @@ Backbone.ajax('https://api.dphoto.com/auths/',{
 })
 .then(R.path('result.auth_token'))
 .then( log('Auth Token retrieved: ') )
-.then(authedSync(Backbone.sync))
+.then(AuthedSync(Backbone.sync))
 .then(function(authedSync){
   Backbone.sync = authedSync;
 })
 
 },{"./collections/paginatedCollection":"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedCollection.js","./hashFromParams":"c:\\Users\\James\\src\\paginationExperiment\\hashFromParams.js","./tap":"c:\\Users\\James\\src\\paginationExperiment\\tap.js","backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js","jquery":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js","ramda":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\ramda\\ramda.js"}],"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedCollection.js":[function(require,module,exports){
-var Backbone = require('Backbone');
-var p = require('lodash').partial
+var Backbone = require('Backbone')
+var cloneDeep = require('lodash').cloneDeep
 
 module.exports = Backbone.Collection.extend({
 
@@ -50,9 +52,7 @@ module.exports = Backbone.Collection.extend({
     //remove: false //will not clear collection after a fetch
   },
 
-  parse: R.get('result'),
-
-  stats: {
+  paginationState: {
     lastRequestSize: null,
     lastPageDirection: null,
     pending: false
@@ -67,7 +67,7 @@ module.exports = Backbone.Collection.extend({
   },
 
   hasNext: function(){
-    return this.stats.lastPageDirection == 'Next' && this.stats.lastRequestSize ||
+    return this.paginationState.lastPageDirection == 'Next' && this.paginationState.lastRequestSize ||
       this.pagination.data.offset <= 0
   },
 
@@ -76,13 +76,13 @@ module.exports = Backbone.Collection.extend({
   },
 
   _onFetchPage: function(request,response){
-    this.stats.lastPageDirection = request.data.offset > this.pagination.data.offset ? 'Next' : 'Prev'
-    this.stats.lastRequestSize = response.result.length;
+    this.paginationState.lastPageDirection = request.data.offset > this.pagination.data.offset ? 'Next' : 'Prev'
+    this.paginationState.lastRequestSize = response.result.length;
     this.pagination = request;
   },
 
   _onFinishPageFetch: function(){
-    this.stats.pending = false;
+    this.paginationState.pending = false;
   },
 
   _throwFetchError: function(direction){
@@ -95,7 +95,7 @@ module.exports = Backbone.Collection.extend({
 
     if(this['has'+directionName]()){
       //clone, so if the setings are incorrect, we don't lose anything
-      var pagination = _.cloneDeep(this.pagination)
+      var pagination = cloneDeep(this.pagination)
 
       pagination.data.offset += pagination.data.limit * direction;
       return this._fetchPage(pagination)
@@ -105,7 +105,7 @@ module.exports = Backbone.Collection.extend({
   },
 
   _fetchPage: function(options){
-    this.stats.pending = true;
+    this.paginationState.pending = true;
     return this.fetch(options || this.paginated)
       .then(this._onFetchPage.bind(this,options))
       .done(this._onFinishPageFetch.bind(this))

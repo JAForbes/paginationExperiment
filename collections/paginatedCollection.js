@@ -1,5 +1,5 @@
-var Backbone = require('Backbone');
-var p = require('lodash').partial
+var Backbone = require('Backbone')
+var cloneDeep = require('lodash').cloneDeep
 
 module.exports = Backbone.Collection.extend({
 
@@ -12,9 +12,7 @@ module.exports = Backbone.Collection.extend({
     //remove: false //will not clear collection after a fetch
   },
 
-  parse: R.get('result'),
-
-  stats: {
+  paginationState: {
     lastRequestSize: null,
     lastPageDirection: null,
     pending: false
@@ -29,7 +27,7 @@ module.exports = Backbone.Collection.extend({
   },
 
   hasNext: function(){
-    return this.stats.lastPageDirection == 'Next' && this.stats.lastRequestSize ||
+    return this.paginationState.lastPageDirection == 'Next' && this.paginationState.lastRequestSize ||
       this.pagination.data.offset <= 0
   },
 
@@ -38,13 +36,13 @@ module.exports = Backbone.Collection.extend({
   },
 
   _onFetchPage: function(request,response){
-    this.stats.lastPageDirection = request.data.offset > this.pagination.data.offset ? 'Next' : 'Prev'
-    this.stats.lastRequestSize = response.result.length;
+    this.paginationState.lastPageDirection = request.data.offset > this.pagination.data.offset ? 'Next' : 'Prev'
+    this.paginationState.lastRequestSize = response.result.length;
     this.pagination = request;
   },
 
   _onFinishPageFetch: function(){
-    this.stats.pending = false;
+    this.paginationState.pending = false;
   },
 
   _throwFetchError: function(direction){
@@ -57,7 +55,7 @@ module.exports = Backbone.Collection.extend({
 
     if(this['has'+directionName]()){
       //clone, so if the setings are incorrect, we don't lose anything
-      var pagination = _.cloneDeep(this.pagination)
+      var pagination = cloneDeep(this.pagination)
 
       pagination.data.offset += pagination.data.limit * direction;
       return this._fetchPage(pagination)
@@ -67,7 +65,7 @@ module.exports = Backbone.Collection.extend({
   },
 
   _fetchPage: function(options){
-    this.stats.pending = true;
+    this.paginationState.pending = true;
     return this.fetch(options || this.paginated)
       .then(this._onFetchPage.bind(this,options))
       .done(this._onFinishPageFetch.bind(this))

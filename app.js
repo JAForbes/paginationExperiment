@@ -1,19 +1,21 @@
-Backbone = require('backbone')
-Backbone.$ = require('jquery');
+var Backbone = require('backbone')
+    Backbone.$ = require('jquery')
 
-_ = require('lodash')
-R = require('ramda')
+var _ = require('lodash')
+var R = require('ramda')
 //convert the url params into a hash
-hashFromParams = require('./hashFromParams')
+var hashFromParams = require('./hashFromParams')
 
-PaginatedCollection = require('./collections/paginatedCollection')
+var PaginatedCollection = require('./collections/paginatedCollection')
 
 dphoto = {}
 dphoto.Files = PaginatedCollection.extend({
-  url: 'https://api.dphoto.com/files'
+  url: 'https://api.dphoto.com/files',
+
+  parse: R.get('result')
 })
 
-authedSync = _.curry(function(Backbone_sync,auth_token,method,model,options){
+var AuthedSync = _.curry(function(Backbone_sync,auth_token,method,model,options){
   options.headers = { 'API-Version': '2.0', 'Auth-Token': auth_token };
   return Backbone_sync(method,model,options);
 })
@@ -29,7 +31,7 @@ Backbone.ajax('https://api.dphoto.com/auths/',{
 })
 .then(R.path('result.auth_token'))
 .then( log('Auth Token retrieved: ') )
-.then(authedSync(Backbone.sync))
+.then(AuthedSync(Backbone.sync))
 .then(function(authedSync){
   Backbone.sync = authedSync;
 })
