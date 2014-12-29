@@ -10,9 +10,13 @@ dphoto.Files = Backbone.Collection.extend({
 
   url: 'https://api.dphoto.com/files',
 
+  //Pagination ajax settings passed to fetch
   pagination: {
-    offset: 0,
-    limit: 100
+    data:{
+      offset: 0,
+      limit: 100
+    },
+    reset: true
   },
 
   hasNext: true,
@@ -20,27 +24,42 @@ dphoto.Files = Backbone.Collection.extend({
 
   parse: R.get('result'),
 
+  throwFetchError: function(direction){
+    throw "Attempted to fetch"+direction+"Page when has"+direction+" was false."
+  },
+
   fetchPrevPage: function(){
-    this.pagination.offset-=this.pagination.limit;
-    return this.fetchPage(this.pagination)
+    if(files.hasPrev){
+      //todo clone, and set to pagination data if result.length > 0
+      this.pagination.data.offset-=this.pagination.data.limit;
+      return this.fetchPage(this.pagination)
+    } else {
+      this.throwFetchError('Prev')
+    }
   },
 
   fetchNextPage: function(){
-    this.pagination.offset+=this.pagination.limit;
-    return this.fetchPage(this.pagination)
+    if(files.hasNext){
+      //todo clone, and set to pagination data if result.length > 0
+      this.pagination.data.offset+=this.pagination.data.limit;
+      return this.fetchPage(this.pagination)
+    } else {
+      this.throwFetchError('Next')
+    }
   },
 
   onFetchPage: function(response){
 
-    this.hasPrev = this.pagination.offset > 0
+    this.hasPrev = this.pagination.data.offset > 0
     var forwardPageHadResult = !!response.result.length;
-    var backwardPageToFirstOrLower = this.pagination.offset < 1;
+    var backwardPageToFirstOrLower = this.pagination.data.offset < 1;
 
     this.hasNext = backwardPageToFirstOrLower || forwardPageHadResult
   },
 
   fetchPage: function(options){
-    return this.fetch({data: options}).then(this.onFetchPage.bind(this))
+    return this.fetch(options)
+      .then(this.onFetchPage.bind(this))
   }
 })
 
