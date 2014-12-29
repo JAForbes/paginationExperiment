@@ -7,7 +7,14 @@ R = require('ramda')
 //convert the url params into a hash
 hashFromParams = require('./hashFromParams')
 
-authedSync = _.curry(function(Backbone_sync,auth_tokem,method,model,options){
+PaginatedCollection = require('./collections/paginatedCollection')
+
+dphoto = {}
+dphoto.Files = PaginatedCollection.extend({
+  url: 'https://api.dphoto.com/files'
+})
+
+authedSync = _.curry(function(Backbone_sync,auth_token,method,model,options){
   options.headers = { 'API-Version': '2.0', 'Auth-Token': auth_token };
   return Backbone_sync(method,model,options);
 })
@@ -28,7 +35,65 @@ Backbone.ajax('https://api.dphoto.com/auths/',{
   Backbone.sync = authedSync;
 })
 
-},{"./hashFromParams":"c:\\Users\\James\\src\\paginationExperiment\\hashFromParams.js","./tap":"c:\\Users\\James\\src\\paginationExperiment\\tap.js","backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js","jquery":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js","ramda":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\ramda\\ramda.js"}],"c:\\Users\\James\\src\\paginationExperiment\\hashFromParams.js":[function(require,module,exports){
+},{"./collections/paginatedCollection":"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedCollection.js","./hashFromParams":"c:\\Users\\James\\src\\paginationExperiment\\hashFromParams.js","./tap":"c:\\Users\\James\\src\\paginationExperiment\\tap.js","backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js","jquery":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js","ramda":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\ramda\\ramda.js"}],"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedCollection.js":[function(require,module,exports){
+var Backbone = require('Backbone');
+
+module.exports = Backbone.Collection.extend({
+
+  //Pagination ajax settings passed to fetch
+  pagination: {
+    data:{
+      offset: 0,
+      limit: 100
+    },
+    //remove: false //will not clear collection after a fetch
+  },
+
+  hasNext: true,
+  hasPrev: false,
+
+  parse: R.get('result'),
+
+  throwFetchError: function(direction){
+    throw "Attempted to fetch"+direction+"Page when has"+direction+" was false."
+  },
+
+  fetchPrevPage: function(){
+    if(files.hasPrev){
+      //todo clone, and set to pagination data if result.length > 0
+      this.pagination.data.offset-=this.pagination.data.limit;
+      return this.fetchPage(this.pagination)
+    } else {
+      this.throwFetchError('Prev')
+    }
+  },
+
+  fetchNextPage: function(){
+    if(files.hasNext){
+      //todo clone, and set to pagination data if result.length > 0
+      this.pagination.data.offset+=this.pagination.data.limit;
+      return this.fetchPage(this.pagination)
+    } else {
+      this.throwFetchError('Next')
+    }
+  },
+
+  onFetchPage: function(response){
+
+    this.hasPrev = this.pagination.data.offset > 0
+    var forwardPageHadResult = !!response.result.length;
+    var backwardPageToFirstOrLower = this.pagination.data.offset < 1;
+
+    this.hasNext = backwardPageToFirstOrLower || forwardPageHadResult
+  },
+
+  fetchPage: function(options){
+    return this.fetch(options)
+      .then(this.onFetchPage.bind(this))
+  }
+})
+
+},{"Backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\hashFromParams.js":[function(require,module,exports){
 var R = require('ramda')
 
 module.exports = R.pipe(
@@ -38,7 +103,7 @@ module.exports = R.pipe(
   R.fromPairs
 )
 
-},{"ramda":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\ramda\\ramda.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js":[function(require,module,exports){
+},{"ramda":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\ramda\\ramda.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":[function(require,module,exports){
 //     Backbone.js 1.1.2
 
 //     (c) 2010-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -1648,7 +1713,7 @@ module.exports = R.pipe(
 
 }));
 
-},{"underscore":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\node_modules\\underscore\\underscore.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\node_modules\\underscore\\underscore.js":[function(require,module,exports){
+},{"underscore":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js":[function(require,module,exports){
 //     Underscore.js 1.7.0
 //     http://underscorejs.org
 //     (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -3065,7 +3130,11 @@ module.exports = R.pipe(
   }
 }.call(this));
 
-},{}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
+},{}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js":[function(require,module,exports){
+module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js")
+},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\node_modules\\underscore\\underscore.js":[function(require,module,exports){
+module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js")
+},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.1.3
  * http://jquery.com/

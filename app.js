@@ -6,7 +6,14 @@ R = require('ramda')
 //convert the url params into a hash
 hashFromParams = require('./hashFromParams')
 
-authedSync = _.curry(function(Backbone_sync,auth_tokem,method,model,options){
+PaginatedCollection = require('./collections/paginatedCollection')
+
+dphoto = {}
+dphoto.Files = PaginatedCollection.extend({
+  url: 'https://api.dphoto.com/files'
+})
+
+authedSync = _.curry(function(Backbone_sync,auth_token,method,model,options){
   options.headers = { 'API-Version': '2.0', 'Auth-Token': auth_token };
   return Backbone_sync(method,model,options);
 })
