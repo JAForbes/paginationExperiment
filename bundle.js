@@ -1,92 +1,20 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"c:\\Users\\James\\src\\paginationExperiment\\app.js":[function(require,module,exports){
-window.Backbone = require('backbone')
+Backbone = require('backbone')
 Backbone.$ = require('jquery');
 
-window._ = require('lodash')
-window.R = require('ramda')
+_ = require('lodash')
+R = require('ramda')
+//convert the url params into a hash
+hashFromParams = require('./hashFromParams')
 
-dphoto = {};
-dphoto.Files = Backbone.Collection.extend({
-
-  url: 'https://api.dphoto.com/files',
-
-  //Pagination ajax settings passed to fetch
-  pagination: {
-    data:{
-      offset: 0,
-      limit: 100
-    },
-    reset: true
-  },
-
-  hasNext: true,
-  hasPrev: false,
-
-  parse: R.get('result'),
-
-  throwFetchError: function(direction){
-    throw "Attempted to fetch"+direction+"Page when has"+direction+" was false."
-  },
-
-  fetchPrevPage: function(){
-    if(files.hasPrev){
-      //todo clone, and set to pagination data if result.length > 0
-      this.pagination.data.offset-=this.pagination.data.limit;
-      return this.fetchPage(this.pagination)
-    } else {
-      this.throwFetchError('Prev')
-    }
-  },
-
-  fetchNextPage: function(){
-    if(files.hasNext){
-      //todo clone, and set to pagination data if result.length > 0
-      this.pagination.data.offset+=this.pagination.data.limit;
-      return this.fetchPage(this.pagination)
-    } else {
-      this.throwFetchError('Next')
-    }
-  },
-
-  onFetchPage: function(response){
-
-    this.hasPrev = this.pagination.data.offset > 0
-    var forwardPageHadResult = !!response.result.length;
-    var backwardPageToFirstOrLower = this.pagination.data.offset < 1;
-
-    this.hasNext = backwardPageToFirstOrLower || forwardPageHadResult
-  },
-
-  fetchPage: function(options){
-    return this.fetch(options)
-      .then(this.onFetchPage.bind(this))
-  }
+authedSync = _.curry(function(Backbone_sync,auth_tokem,method,model,options){
+  options.headers = { 'API-Version': '2.0', 'Auth-Token': auth_token };
+  return Backbone_sync(method,model,options);
 })
 
-log = function(){
-  var messages = _.toArray(arguments);
-  return function(value){
-    console.log.apply(console,messages.concat([value]))
-    return value;
-  }
-}
-
-createAuthedSync = function(auth_token){
-  var Backbone_sync = Backbone.sync;
-  function AuthedSync(method,model,options){
-    options.headers = { 'API-Version': '2.0', 'Auth-Token': auth_token };
-    return Backbone_sync(method,model,options);
-  }
-  return AuthedSync
-}
-
-//convert the url params into a hash
-hashFromParams = R.pipe(
-  R.substringFrom(1),
-  R.split('&'),
-  R.map(R.split('=')),
-  R.fromPairs
-)
+//asynchronous logging
+tap = require('./tap')
+log = tap(console.log.bind(console))
 
 Backbone.ajax('https://api.dphoto.com/auths/',{
   method: 'POST',
@@ -95,13 +23,22 @@ Backbone.ajax('https://api.dphoto.com/auths/',{
 })
 .then(R.path('result.auth_token'))
 .then( log('Auth Token retrieved: ') )
-.then(createAuthedSync)
-.then( log('Created pre authed Backbone.sync function:\n\n'))
+.then(authedSync(Backbone.sync))
 .then(function(authedSync){
   Backbone.sync = authedSync;
 })
 
-},{"backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js","jquery":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js","ramda":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\ramda\\ramda.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js":[function(require,module,exports){
+},{"./hashFromParams":"c:\\Users\\James\\src\\paginationExperiment\\hashFromParams.js","./tap":"c:\\Users\\James\\src\\paginationExperiment\\tap.js","backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js","jquery":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js","ramda":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\ramda\\ramda.js"}],"c:\\Users\\James\\src\\paginationExperiment\\hashFromParams.js":[function(require,module,exports){
+var R = require('ramda')
+
+module.exports = R.pipe(
+  R.substringFrom(1),
+  R.split('&'),
+  R.map(R.split('=')),
+  R.fromPairs
+)
+
+},{"ramda":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\ramda\\ramda.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js":[function(require,module,exports){
 //     Backbone.js 1.1.2
 
 //     (c) 2010-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -25326,4 +25263,13 @@ return jQuery;
     return R;
 }));
 
-},{}]},{},["c:\\Users\\James\\src\\paginationExperiment\\app.js"]);
+},{}],"c:\\Users\\James\\src\\paginationExperiment\\tap.js":[function(require,module,exports){
+var curry = require('lodash').curry
+
+module.exports = curry(function(func){
+  var rest = Array.prototype.slice.call(arguments,1);
+  func.apply(this,rest);
+  return rest.slice(-1)[0]
+},3)
+
+},{"lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js"}]},{},["c:\\Users\\James\\src\\paginationExperiment\\app.js"]);
