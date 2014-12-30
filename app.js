@@ -5,6 +5,8 @@ var _ = require('lodash')
 window._ = _
 
 var R = require('ramda')
+window.R = R
+
 //convert the url params into a hash
 var hashFromParams = require('./hashFromParams')
 

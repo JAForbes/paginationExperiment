@@ -6,6 +6,8 @@ var _ = require('lodash')
 window._ = _
 
 var R = require('ramda')
+window.R = R
+
 //convert the url params into a hash
 var hashFromParams = require('./hashFromParams')
 
@@ -25414,6 +25416,7 @@ module.exports = Backbone.View.extend({
 var Backbone = require('backbone')
 
 var _ = require('lodash')
+var R = require('ramda')
 var Img = require('./file')
 
 module.exports = Backbone.View.extend({
@@ -25422,16 +25425,17 @@ module.exports = Backbone.View.extend({
       this.collection.on('sync',this.render.bind(this))
     },
 
+    createImgEl: R.pipe(
+      R.createMapEntry('model'),
+      R.construct(Img),
+      R.get('el')
+    ),
+
     render: function(collection){
-      var imgs = collection.map(function(model){
-
-        this.$el.empty().append(
-          new Img({ model: model }).el
-        )
-
-      },this)
-
+      this.$el.empty().append(
+        collection.map( this.createImgEl )
+      )
     },
 })
 
-},{"./file":"c:\\Users\\James\\src\\paginationExperiment\\views\\file.js","backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js"}]},{},["c:\\Users\\James\\src\\paginationExperiment\\app.js"]);
+},{"./file":"c:\\Users\\James\\src\\paginationExperiment\\views\\file.js","backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js","ramda":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\ramda\\ramda.js"}]},{},["c:\\Users\\James\\src\\paginationExperiment\\app.js"]);

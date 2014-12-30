@@ -1,6 +1,7 @@
 var Backbone = require('backbone')
 
 var _ = require('lodash')
+var R = require('ramda')
 var Img = require('./file')
 
 module.exports = Backbone.View.extend({
@@ -9,14 +10,15 @@ module.exports = Backbone.View.extend({
       this.collection.on('sync',this.render.bind(this))
     },
 
+    createImgEl: R.pipe(
+      R.createMapEntry('model'),
+      R.construct(Img),
+      R.get('el')
+    ),
+
     render: function(collection){
-      var imgs = collection.map(function(model){
-
-        this.$el.empty().append(
-          new Img({ model: model }).el
-        )
-
-      },this)
-
+      this.$el.empty().append(
+        collection.map( this.createImgEl )
+      )
     },
 })
