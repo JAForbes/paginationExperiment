@@ -2,12 +2,17 @@ var Backbone = require('backbone')
     Backbone.$ = require('jquery')
 
 var _ = require('lodash')
+window._ = _
 
 var R = require('ramda')
 //convert the url params into a hash
 var hashFromParams = require('./hashFromParams')
 
 var PaginatedCollection = require('./collections/paginatedCollection')
+var GridView = require('./views/grid')
+window.GridView = GridView
+var FileView = require('./views/file')
+window.FileView = FileView
 
 dphoto = {}
 dphoto.File = Backbone.Model.extend({

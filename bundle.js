@@ -3,12 +3,17 @@ var Backbone = require('backbone')
     Backbone.$ = require('jquery')
 
 var _ = require('lodash')
+window._ = _
 
 var R = require('ramda')
 //convert the url params into a hash
 var hashFromParams = require('./hashFromParams')
 
 var PaginatedCollection = require('./collections/paginatedCollection')
+var GridView = require('./views/grid')
+window.GridView = GridView
+var FileView = require('./views/file')
+window.FileView = FileView
 
 dphoto = {}
 dphoto.File = Backbone.Model.extend({
@@ -41,7 +46,7 @@ Backbone.ajax('https://api.dphoto.com/auths/',{
   Backbone.sync = authedSync;
 })
 
-},{"./collections/paginatedCollection":"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedCollection.js","./hashFromParams":"c:\\Users\\James\\src\\paginationExperiment\\hashFromParams.js","./tap":"c:\\Users\\James\\src\\paginationExperiment\\tap.js","backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js","jquery":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js","ramda":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\ramda\\ramda.js"}],"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedCollection.js":[function(require,module,exports){
+},{"./collections/paginatedCollection":"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedCollection.js","./hashFromParams":"c:\\Users\\James\\src\\paginationExperiment\\hashFromParams.js","./tap":"c:\\Users\\James\\src\\paginationExperiment\\tap.js","./views/file":"c:\\Users\\James\\src\\paginationExperiment\\views\\file.js","./views/grid":"c:\\Users\\James\\src\\paginationExperiment\\views\\grid.js","backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js","jquery":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js","ramda":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\ramda\\ramda.js"}],"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedCollection.js":[function(require,module,exports){
 var Backbone = require('Backbone')
 var cloneDeep = require('lodash').cloneDeep
 
@@ -3184,9 +3189,7 @@ module.exports = R.pipe(
 
 },{}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js":[function(require,module,exports){
 module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js")
-},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\node_modules\\underscore\\underscore.js":[function(require,module,exports){
-module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js")
-},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
+},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.1.3
  * http://jquery.com/
@@ -25393,4 +25396,42 @@ module.exports = curry(function(func){
   return rest.slice(-1)[0]
 },3)
 
-},{"lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js"}]},{},["c:\\Users\\James\\src\\paginationExperiment\\app.js"]);
+},{"lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js"}],"c:\\Users\\James\\src\\paginationExperiment\\views\\file.js":[function(require,module,exports){
+var Backbone = require('Backbone')
+
+module.exports = Backbone.View.extend({
+  tagName: 'img',
+
+  attributes: function(){
+    return {
+      src: this.model.get('file_url').replace('_size_','square')
+    }
+  }
+
+})
+
+},{"Backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\views\\grid.js":[function(require,module,exports){
+var Backbone = require('backbone')
+
+var _ = require('lodash')
+var Img = require('./file')
+
+module.exports = Backbone.View.extend({
+
+    initialize: function(options){
+      this.collection.on('sync',this.render.bind(this))
+    },
+
+    render: function(collection){
+      var imgs = collection.map(function(model){
+
+        this.$el.empty().append(
+          new Img({ model: model }).el
+        )
+
+      },this)
+
+    },
+})
+
+},{"./file":"c:\\Users\\James\\src\\paginationExperiment\\views\\file.js","backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js"}]},{},["c:\\Users\\James\\src\\paginationExperiment\\app.js"]);
