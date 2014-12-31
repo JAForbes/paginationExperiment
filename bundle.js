@@ -113,6 +113,10 @@ module.exports = Backbone.Collection.extend({
     return this.pagination.settings.sync.data.offset > 0;
   },
 
+  fetchCurrent: function(){
+    this.fetch(this.pagination.settings.sync)
+  },
+
   _updatePaginationStates: function(request,response){
     this.pagination.state.lastPageDirection = request.data.offset > this.pagination.settings.sync.data.offset ? 'Next' : 'Prev'
     this.pagination.state.lastRequestSize = response.result.length;
@@ -3191,7 +3195,9 @@ module.exports = R.pipe(
 
 },{}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js":[function(require,module,exports){
 module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js")
-},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
+},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\node_modules\\underscore\\underscore.js":[function(require,module,exports){
+module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js")
+},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.1.3
  * http://jquery.com/

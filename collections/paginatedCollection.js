@@ -62,6 +62,10 @@ module.exports = Backbone.Collection.extend({
     return this.pagination.settings.sync.data.offset > 0;
   },
 
+  fetchCurrent: function(){
+    this.fetch(this.pagination.settings.sync)
+  },
+
   _updatePaginationStates: function(request,response){
     this.pagination.state.lastPageDirection = request.data.offset > this.pagination.settings.sync.data.offset ? 'Next' : 'Prev'
     this.pagination.state.lastRequestSize = response.result.length;
