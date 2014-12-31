@@ -1,3 +1,5 @@
+window.require = require
+
 var Backbone = require('backbone')
     Backbone.$ = require('jquery')
 
