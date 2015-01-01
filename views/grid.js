@@ -17,6 +17,7 @@ module.exports = Backbone.View.extend({
     ),
 
     render: function(collection){
+      console.log('render',collection)
       this.$el.empty().append(
         collection.map( this.createImgEl )
       )

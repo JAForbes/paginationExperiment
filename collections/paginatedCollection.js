@@ -1,5 +1,6 @@
 var Backbone = require('Backbone')
-var cloneDeep = require('lodash').cloneDeep
+var _ = require('lodash')
+
 
 module.exports = Backbone.Collection.extend({
 
@@ -12,37 +13,19 @@ module.exports = Backbone.Collection.extend({
           offset: 0,
           limit: 100
         },
-        remove: false, //will not clear collection after a fetch
+        remove: false
       },
-      //what proportion of the limit to delete after every fetch
-      forgetRatio: 1,
-      //what proportion of the limit to keep before starting to forget
-      keepRatio: 3
     },
 
     state: {
       lastRequestSize: null,
       lastPageDirection: null,
-      pending: false
+      pending: false,
     }
   },
 
-  forgetItems: function(syncOptions){
-    var forgetRatio = this.pagination.settings.forgetRatio // 0.2
-    var lastPageDirection = this.pagination.state.lastPageDirection // 'Next' | 'Prev'
-    var limit = this.pagination.settings.sync.data.limit;
-    var keepRatio = this.pagination.settings.keepRatio
-    if( this.length > limit*keepRatio ) {
-      var itemsToForget = Math.floor(limit * forgetRatio) // 20
-
-      var sliceArgs = ({
-        Next: [itemsToForget], //[20]
-        Prev: [0,-itemsToForget]  //[0, -20]
-      })[lastPageDirection] // sliceArgs.Next //=> [0, 20]
-      var remaining = this.slice.apply(this,sliceArgs); //collections.slice(0,-20)
-      this.set(remaining); //fires 'remove' for 20 models
-    }
-    return syncOptions
+  fetchCurrent: function(){
+    return this.fetch(this.pagination.settings.sync)
   },
 
   fetchPrevPage: function(){
@@ -60,10 +43,6 @@ module.exports = Backbone.Collection.extend({
 
   hasPrev: function(){
     return this.pagination.settings.sync.data.offset > 0;
-  },
-
-  fetchCurrent: function(){
-    this.fetch(this.pagination.settings.sync)
   },
 
   _updatePaginationStates: function(request,response){
@@ -86,7 +65,7 @@ module.exports = Backbone.Collection.extend({
 
     if(this['has'+directionName]()){
       //clone, so if the settings are incorrect, we don't lose anything
-      var paginationSync = cloneDeep(this.pagination.settings.sync)
+      var paginationSync = _.cloneDeep(this.pagination.settings.sync)
 
       paginationSync.data.offset += paginationSync.data.limit * direction;
       return this._fetchPage(paginationSync)
@@ -97,10 +76,9 @@ module.exports = Backbone.Collection.extend({
 
   _fetchPage: function(options){
     this.pagination.state.pending = true;
+    options.at = options.data.offset
     return this.fetch(options)
-      .then(this._removeDuplicates)
       .then(this._updatePaginationStates.bind(this,options))
-      .then(this.forgetItems.bind(this))
       .done(this._onFinishPageFetch.bind(this))
   }
 })

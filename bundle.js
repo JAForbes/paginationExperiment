@@ -1,8 +1,8 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"c:\\Users\\James\\src\\paginationExperiment\\app.js":[function(require,module,exports){
-window.require = require
-
 var Backbone = require('backbone')
     Backbone.$ = require('jquery')
+window.Backbone = Backbone
+window.$ = Backbone.$
 
 var _ = require('lodash')
 window._ = _
@@ -13,7 +13,7 @@ window.R = R
 //convert the url params into a hash
 var hashFromParams = require('./hashFromParams')
 
-var PaginatedCollection = require('./collections/paginatedCollection')
+var PaginatedCollection = require('./collections/paginatedView')
 var GridView = require('./views/grid')
 window.GridView = GridView
 var FileView = require('./views/file')
@@ -49,10 +49,45 @@ Backbone.ajax('https://api.dphoto.com/auths/',{
 .then(function(authedSync){
   Backbone.sync = authedSync;
 })
+.then(function(){
+  grid = new GridView({ collection: new dphoto.Files() })
+  grid.collection.pagination.settings.sync.data.limit = 10
+  grid.collection.pagination.settings.sync.data.type = 'F'
+  content.appendChild(grid.el)
+  !grid.collection.pagination.state.pending && grid.collection.fetchCurrentPage()
 
-},{"./collections/paginatedCollection":"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedCollection.js","./hashFromParams":"c:\\Users\\James\\src\\paginationExperiment\\hashFromParams.js","./tap":"c:\\Users\\James\\src\\paginationExperiment\\tap.js","./views/file":"c:\\Users\\James\\src\\paginationExperiment\\views\\file.js","./views/grid":"c:\\Users\\James\\src\\paginationExperiment\\views\\grid.js","backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js","jquery":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js","ramda":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\ramda\\ramda.js"}],"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedCollection.js":[function(require,module,exports){
+  $('#limit').on('change',function(){
+    grid.collection.pagination.settings.sync.data.limit = $(this).val()*1
+    grid.collection.fetchCurrentPage()
+  })
+  $('#offset').on('change',function(){
+    grid.collection.pagination.settings.sync.data.offset= $(this).val()*1
+    grid.collection.fetchCurrentPage()
+  })
+  $('#left').on('change',function(){
+    grid.collection.settings.padding[0]= $(this).val()*1
+    grid.collection.fetchCurrentPage()
+  })
+  $('#right').on('change',function(){
+    grid.collection.settings.padding[1]= $(this).val()*1
+    grid.collection.fetchCurrentPage()
+  })
+
+  $('#current').on('click',function(){
+    grid.collection.fetchCurrentPage()
+  })
+  $('#prev').on('click',function(){
+    grid.collection.fetchPrevPage()
+  })
+  $('#next').on('click',function(){
+    grid.collection.fetchNextPage()
+  })
+})
+
+},{"./collections/paginatedView":"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedView.js","./hashFromParams":"c:\\Users\\James\\src\\paginationExperiment\\hashFromParams.js","./tap":"c:\\Users\\James\\src\\paginationExperiment\\tap.js","./views/file":"c:\\Users\\James\\src\\paginationExperiment\\views\\file.js","./views/grid":"c:\\Users\\James\\src\\paginationExperiment\\views\\grid.js","backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js","jquery":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js","ramda":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\ramda\\ramda.js"}],"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedCollection.js":[function(require,module,exports){
 var Backbone = require('Backbone')
-var cloneDeep = require('lodash').cloneDeep
+var _ = require('lodash')
+
 
 module.exports = Backbone.Collection.extend({
 
@@ -65,37 +100,19 @@ module.exports = Backbone.Collection.extend({
           offset: 0,
           limit: 100
         },
-        remove: false, //will not clear collection after a fetch
+        remove: false
       },
-      //what proportion of the limit to delete after every fetch
-      forgetRatio: 1,
-      //what proportion of the limit to keep before starting to forget
-      keepRatio: 3
     },
 
     state: {
       lastRequestSize: null,
       lastPageDirection: null,
-      pending: false
+      pending: false,
     }
   },
 
-  forgetItems: function(syncOptions){
-    var forgetRatio = this.pagination.settings.forgetRatio // 0.2
-    var lastPageDirection = this.pagination.state.lastPageDirection // 'Next' | 'Prev'
-    var limit = this.pagination.settings.sync.data.limit;
-    var keepRatio = this.pagination.settings.keepRatio
-    if( this.length > limit*keepRatio ) {
-      var itemsToForget = Math.floor(limit * forgetRatio) // 20
-
-      var sliceArgs = ({
-        Next: [itemsToForget], //[20]
-        Prev: [0,-itemsToForget]  //[0, -20]
-      })[lastPageDirection] // sliceArgs.Next //=> [0, 20]
-      var remaining = this.slice.apply(this,sliceArgs); //collections.slice(0,-20)
-      this.set(remaining); //fires 'remove' for 20 models
-    }
-    return syncOptions
+  fetchCurrent: function(){
+    return this.fetch(this.pagination.settings.sync)
   },
 
   fetchPrevPage: function(){
@@ -113,10 +130,6 @@ module.exports = Backbone.Collection.extend({
 
   hasPrev: function(){
     return this.pagination.settings.sync.data.offset > 0;
-  },
-
-  fetchCurrent: function(){
-    this.fetch(this.pagination.settings.sync)
   },
 
   _updatePaginationStates: function(request,response){
@@ -139,7 +152,7 @@ module.exports = Backbone.Collection.extend({
 
     if(this['has'+directionName]()){
       //clone, so if the settings are incorrect, we don't lose anything
-      var paginationSync = cloneDeep(this.pagination.settings.sync)
+      var paginationSync = _.cloneDeep(this.pagination.settings.sync)
 
       paginationSync.data.offset += paginationSync.data.limit * direction;
       return this._fetchPage(paginationSync)
@@ -150,15 +163,65 @@ module.exports = Backbone.Collection.extend({
 
   _fetchPage: function(options){
     this.pagination.state.pending = true;
+    options.at = options.data.offset
     return this.fetch(options)
-      .then(this._removeDuplicates)
       .then(this._updatePaginationStates.bind(this,options))
-      .then(this.forgetItems.bind(this))
       .done(this._onFinishPageFetch.bind(this))
   }
 })
 
-},{"Backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js"}],"c:\\Users\\James\\src\\paginationExperiment\\hashFromParams.js":[function(require,module,exports){
+},{"Backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js"}],"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedView.js":[function(require,module,exports){
+var Backbone = require('Backbone')
+var DataCollection = require('./paginatedCollection')
+
+module.exports = Backbone.Collection.extend({
+
+  settings: {
+    padding: [2,2]
+  },
+
+  initialize: function(options){
+    this.data = new DataCollection(options)
+    this.data.url = this.url;
+    this.data.parse = this.parse;
+    this.pagination = this.data.pagination
+
+  },
+
+  fetchCurrentPage: function(){
+    return this.data.fetchCurrent()
+      .then(this.updateSlice.bind(this))
+  },
+
+  fetchNextPage: function(){
+    return this.data.fetchNextPage()
+      .then(this.updateSlice.bind(this))
+  },
+
+  fetchPrevPage: function(){
+    return this.data.fetchPrevPage()
+      .then(this.updateSlice.bind(this))
+  },
+
+  updateSlice: function(){
+
+    var offset = this.pagination.settings.sync.data.offset
+    var limit = this.pagination.settings.sync.data.limit
+    var padding = this.settings.padding
+    var remaining = this.toJSON.apply(
+      this.data.slice(
+        Math.max(0,offset-padding[0]),
+        offset+limit+padding[1]
+      )
+    )
+
+    //should trigger add remove etc
+    this.set(remaining)
+    this.trigger('sync',this)
+  }
+})
+
+},{"./paginatedCollection":"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedCollection.js","Backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\hashFromParams.js":[function(require,module,exports){
 var R = require('ramda')
 
 module.exports = R.pipe(
@@ -3197,9 +3260,7 @@ module.exports = R.pipe(
 
 },{}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js":[function(require,module,exports){
 module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js")
-},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\node_modules\\underscore\\underscore.js":[function(require,module,exports){
-module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js")
-},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
+},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.1.3
  * http://jquery.com/
@@ -25440,6 +25501,7 @@ module.exports = Backbone.View.extend({
     ),
 
     render: function(collection){
+      console.log('render',collection)
       this.$el.empty().append(
         collection.map( this.createImgEl )
       )
