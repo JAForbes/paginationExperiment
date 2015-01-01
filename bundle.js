@@ -19,6 +19,8 @@ window.GridView = GridView
 var FileView = require('./views/file')
 window.FileView = FileView
 
+var ControlView = require('./views/controls')
+
 dphoto = {}
 dphoto.File = Backbone.Model.extend({
   idAttribute: 'file_id'
@@ -53,38 +55,18 @@ Backbone.ajax('https://api.dphoto.com/auths/',{
   grid = new GridView({ collection: new dphoto.Files() })
   grid.collection.pagination.settings.sync.data.limit = 10
   grid.collection.pagination.settings.sync.data.type = 'F'
+
+  controlsView = new ControlView({
+    collection: grid.collection,
+    el: controls
+  })
+
   content.appendChild(grid.el)
-  !grid.collection.pagination.state.pending && grid.collection.fetchCurrentPage()
 
-  $('#limit').on('change',function(){
-    grid.collection.pagination.settings.sync.data.limit = $(this).val()*1
-    grid.collection.fetchCurrentPage()
-  })
-  $('#offset').on('change',function(){
-    grid.collection.pagination.settings.sync.data.offset= $(this).val()*1
-    grid.collection.fetchCurrentPage()
-  })
-  $('#left').on('change',function(){
-    grid.collection.settings.padding[0]= $(this).val()*1
-    grid.collection.fetchCurrentPage()
-  })
-  $('#right').on('change',function(){
-    grid.collection.settings.padding[1]= $(this).val()*1
-    grid.collection.fetchCurrentPage()
-  })
-
-  $('#current').on('click',function(){
-    grid.collection.fetchCurrentPage()
-  })
-  $('#prev').on('click',function(){
-    grid.collection.fetchPrevPage()
-  })
-  $('#next').on('click',function(){
-    grid.collection.fetchNextPage()
-  })
+  grid.collection.fetchCurrentPage()
 })
 
-},{"./collections/paginatedView":"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedView.js","./hashFromParams":"c:\\Users\\James\\src\\paginationExperiment\\hashFromParams.js","./tap":"c:\\Users\\James\\src\\paginationExperiment\\tap.js","./views/file":"c:\\Users\\James\\src\\paginationExperiment\\views\\file.js","./views/grid":"c:\\Users\\James\\src\\paginationExperiment\\views\\grid.js","backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js","jquery":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js","ramda":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\ramda\\ramda.js"}],"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedCollection.js":[function(require,module,exports){
+},{"./collections/paginatedView":"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedView.js","./hashFromParams":"c:\\Users\\James\\src\\paginationExperiment\\hashFromParams.js","./tap":"c:\\Users\\James\\src\\paginationExperiment\\tap.js","./views/controls":"c:\\Users\\James\\src\\paginationExperiment\\views\\controls.js","./views/file":"c:\\Users\\James\\src\\paginationExperiment\\views\\file.js","./views/grid":"c:\\Users\\James\\src\\paginationExperiment\\views\\grid.js","backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js","jquery":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js","ramda":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\ramda\\ramda.js"}],"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedCollection.js":[function(require,module,exports){
 var Backbone = require('Backbone')
 var _ = require('lodash')
 
@@ -3260,7 +3242,9 @@ module.exports = R.pipe(
 
 },{}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js":[function(require,module,exports){
 module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js")
-},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
+},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\node_modules\\underscore\\underscore.js":[function(require,module,exports){
+module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js")
+},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.1.3
  * http://jquery.com/
@@ -25467,7 +25451,45 @@ module.exports = curry(function(func){
   return rest.slice(-1)[0]
 },3)
 
-},{"lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js"}],"c:\\Users\\James\\src\\paginationExperiment\\views\\file.js":[function(require,module,exports){
+},{"lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js"}],"c:\\Users\\James\\src\\paginationExperiment\\views\\controls.js":[function(require,module,exports){
+var R = require('ramda')
+
+module.exports = Backbone.View.extend({
+  el: controls,
+  events: {
+    'change #limit': 'changeLimit',
+    'change #offset': 'changeOffset',
+    'change #left': 'changeLeft',
+    'change #right': 'changeRight',
+    'click #current': 'clickCurrent',
+    'click #prev': 'clickPrev',
+    'click #next': 'clickNext'
+  },
+
+  changeSetting: function(path,e){
+      var parts = path.split('.')
+      var attr = parts.slice(-1)[0];
+      var path = parts.slice(0,-1).join('.')
+
+      R.path(path,grid.collection)[attr] = e.currentTarget.value * 1
+      this.collection.fetchCurrentPage()
+  },
+
+  initialize: function(){
+    this.changeLimit = _.partial(this.changeSetting,'pagination.settings.sync.data.limit')
+    this.changeOffset = _.partial(this.changeSetting,'pagination.settings.sync.data.offset')
+    this.changeLeft = _.partial(this.changeSetting,'settings.padding.0')
+    this.changeRight = _.partial(this.changeSetting,'settings.padding.1')
+
+    _.each(['Current','Prev','Next'],function(val){
+      this['click'+val] = function(){
+        this.collection['fetch'+val+'Page']()
+      }
+    },this)
+  }
+})
+
+},{"ramda":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\ramda\\ramda.js"}],"c:\\Users\\James\\src\\paginationExperiment\\views\\file.js":[function(require,module,exports){
 var Backbone = require('Backbone')
 
 module.exports = Backbone.View.extend({

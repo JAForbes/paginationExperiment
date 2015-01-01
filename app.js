@@ -18,6 +18,8 @@ window.GridView = GridView
 var FileView = require('./views/file')
 window.FileView = FileView
 
+var ControlView = require('./views/controls')
+
 dphoto = {}
 dphoto.File = Backbone.Model.extend({
   idAttribute: 'file_id'
@@ -52,33 +54,13 @@ Backbone.ajax('https://api.dphoto.com/auths/',{
   grid = new GridView({ collection: new dphoto.Files() })
   grid.collection.pagination.settings.sync.data.limit = 10
   grid.collection.pagination.settings.sync.data.type = 'F'
+
+  controlsView = new ControlView({
+    collection: grid.collection,
+    el: controls
+  })
+
   content.appendChild(grid.el)
-  !grid.collection.pagination.state.pending && grid.collection.fetchCurrentPage()
 
-  $('#limit').on('change',function(){
-    grid.collection.pagination.settings.sync.data.limit = $(this).val()*1
-    grid.collection.fetchCurrentPage()
-  })
-  $('#offset').on('change',function(){
-    grid.collection.pagination.settings.sync.data.offset= $(this).val()*1
-    grid.collection.fetchCurrentPage()
-  })
-  $('#left').on('change',function(){
-    grid.collection.settings.padding[0]= $(this).val()*1
-    grid.collection.fetchCurrentPage()
-  })
-  $('#right').on('change',function(){
-    grid.collection.settings.padding[1]= $(this).val()*1
-    grid.collection.fetchCurrentPage()
-  })
-
-  $('#current').on('click',function(){
-    grid.collection.fetchCurrentPage()
-  })
-  $('#prev').on('click',function(){
-    grid.collection.fetchPrevPage()
-  })
-  $('#next').on('click',function(){
-    grid.collection.fetchNextPage()
-  })
+  grid.collection.fetchCurrentPage()
 })
