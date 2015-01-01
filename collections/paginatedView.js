@@ -4,7 +4,7 @@ var DataCollection = require('./paginatedCollection')
 module.exports = Backbone.Collection.extend({
 
   settings: {
-    padding: [2,2]
+    padding: [0,0]
   },
 
   initialize: function(options){

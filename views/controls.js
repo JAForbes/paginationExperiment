@@ -1,4 +1,6 @@
 var R = require('ramda')
+var Backbone = require('Backbone')
+var _ = require('lodash')
 
 module.exports = Backbone.View.extend({
   el: controls,
@@ -21,14 +23,15 @@ module.exports = Backbone.View.extend({
   },
 
   initialize: function(){
-    this.changeLimit = _.partial(this.changeSetting,'pagination.settings.sync.data.limit')
-    this.changeLeft = _.partial(this.changeSetting,'settings.padding.0')
-    this.changeRight = _.partial(this.changeSetting,'settings.padding.1')
+    this.changeLimit = _.debounce(_.partial(this.changeSetting,'pagination.settings.sync.data.limit'))
+    this.changeLeft = _.debounce(_.partial(this.changeSetting,'settings.padding.0'))
+    this.changeRight = _.debounce(_.partial(this.changeSetting,'settings.padding.1'))
 
     _.each(['Current','Prev','Next'],function(val){
       this['click'+val] = function(){
-        this.collection['fetch'+val+'Page']()
+          return this.collection['fetch'+val+'Page']()
       }
     },this)
+
   }
 })

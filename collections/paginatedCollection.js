@@ -11,7 +11,7 @@ module.exports = Backbone.Collection.extend({
       sync: {
         data:{
           offset: 0,
-          limit: 100
+          limit: 1
         },
         remove: false
       },
@@ -37,8 +37,8 @@ module.exports = Backbone.Collection.extend({
   },
 
   hasNext: function(){
-    return this.pagination.state.lastPageDirection == 'Next' && this.pagination.state.lastRequestSize ||
-      this.pagination.settings.sync.data.offset <= 0
+    return ! (this.pagination.state.lastPageDirection == 'Next' && this.pagination.state.lastRequestSize == 0)
+
   },
 
   hasPrev: function(){
@@ -81,22 +81,26 @@ module.exports = Backbone.Collection.extend({
     var remaining = this.toJSON.apply(
       this.slice( offset, offset+limit)
     )
-    if(remaining.length == limit){
-      console.log('don\'t need to fetch',remaining.length)
+    var alreadyLoaded = remaining.length == limit
+    if(alreadyLoaded){
       return Promise.resolve({
         result: remaining
       })
     } else {
-      console.log('fetching','remaining',remaining.length,'offset - limit abs',Math.abs(offset-limit),limit,offset)
       return this.fetch(options)
     }
   },
 
   _fetchPage: function(options){
-    this.pagination.state.pending = true;
-    options.at = options.data.offset
-    return this._fetchOr(options)
-      .then(this._updatePaginationStates.bind(this,options))
-      .then(this._onFinishPageFetch.bind(this))
+    if(!this.pagination.state.pending){
+      this.pagination.state.pending = true;
+      options.at = options.data.offset
+      return this._fetchOr(options)
+        .then(this._updatePaginationStates.bind(this,options))
+        .then(this._onFinishPageFetch.bind(this))
+    } else {
+      return Promise.reject("Already Pending a Request")
+    }
+
   }
 })
