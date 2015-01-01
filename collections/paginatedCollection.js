@@ -1,6 +1,6 @@
 var Backbone = require('Backbone')
 var _ = require('lodash')
-
+var Promise = require('promise')
 
 module.exports = Backbone.Collection.extend({
 
@@ -74,11 +74,29 @@ module.exports = Backbone.Collection.extend({
     }
   },
 
+  //fetch only if we don't have the values
+  _fetchOr: function(options){
+    var offset = options.data.offset
+    var limit = options.data.limit
+    var remaining = this.toJSON.apply(
+      this.slice( offset, offset+limit)
+    )
+    if(remaining.length == limit){
+      console.log('don\'t need to fetch',remaining.length)
+      return Promise.resolve({
+        result: remaining
+      })
+    } else {
+      console.log('fetching','remaining',remaining.length,'offset - limit abs',Math.abs(offset-limit),limit,offset)
+      return this.fetch(options)
+    }
+  },
+
   _fetchPage: function(options){
     this.pagination.state.pending = true;
     options.at = options.data.offset
-    return this.fetch(options)
+    return this._fetchOr(options)
       .then(this._updatePaginationStates.bind(this,options))
-      .done(this._onFinishPageFetch.bind(this))
+      .then(this._onFinishPageFetch.bind(this))
   }
 })

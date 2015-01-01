@@ -31,7 +31,6 @@ module.exports = Backbone.Collection.extend({
   },
 
   updateSlice: function(){
-
     var offset = this.pagination.settings.sync.data.offset
     var limit = this.pagination.settings.sync.data.limit
     var padding = this.settings.padding
