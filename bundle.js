@@ -94,7 +94,7 @@ module.exports = Backbone.Collection.extend({
   },
 
   fetchCurrent: function(){
-    return this.fetch(this.pagination.settings.sync)
+    return this._fetchPage(this.pagination.settings.sync)
   },
 
   fetchPrevPage: function(){
@@ -163,7 +163,7 @@ module.exports = Backbone.Collection.extend({
   },
 
   initialize: function(options){
-    this.data = new DataCollection(options)
+    this.data = new (DataCollection.extend({ model: this.model }))
     this.data.url = this.url;
     this.data.parse = this.parse;
     this.pagination = this.data.pagination
@@ -3242,9 +3242,7 @@ module.exports = R.pipe(
 
 },{}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js":[function(require,module,exports){
 module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js")
-},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\node_modules\\underscore\\underscore.js":[function(require,module,exports){
-module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js")
-},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
+},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.1.3
  * http://jquery.com/
@@ -25458,7 +25456,6 @@ module.exports = Backbone.View.extend({
   el: controls,
   events: {
     'change #limit': 'changeLimit',
-    'change #offset': 'changeOffset',
     'change #left': 'changeLeft',
     'change #right': 'changeRight',
     'click #current': 'clickCurrent',
@@ -25477,7 +25474,6 @@ module.exports = Backbone.View.extend({
 
   initialize: function(){
     this.changeLimit = _.partial(this.changeSetting,'pagination.settings.sync.data.limit')
-    this.changeOffset = _.partial(this.changeSetting,'pagination.settings.sync.data.offset')
     this.changeLeft = _.partial(this.changeSetting,'settings.padding.0')
     this.changeRight = _.partial(this.changeSetting,'settings.padding.1')
 

@@ -25,7 +25,7 @@ module.exports = Backbone.Collection.extend({
   },
 
   fetchCurrent: function(){
-    return this.fetch(this.pagination.settings.sync)
+    return this._fetchPage(this.pagination.settings.sync)
   },
 
   fetchPrevPage: function(){

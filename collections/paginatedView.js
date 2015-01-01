@@ -8,7 +8,7 @@ module.exports = Backbone.Collection.extend({
   },
 
   initialize: function(options){
-    this.data = new DataCollection(options)
+    this.data = new (DataCollection.extend({ model: this.model }))
     this.data.url = this.url;
     this.data.parse = this.parse;
     this.pagination = this.data.pagination
