@@ -24,6 +24,10 @@ module.exports = Backbone.Collection.extend({
     }
   },
 
+  initialize: function(){
+    this.actualData = [];
+  },
+
   fetchCurrent: function(){
     return this._fetchPage(this.pagination.settings.sync)
   },
@@ -74,6 +78,18 @@ module.exports = Backbone.Collection.extend({
     }
   },
 
+  _concatAt: function(at, target, concat){
+    for( var i = 0; i < concat.length; i++){
+      target[i+at] = concat[i]
+    }
+    return target;
+  },
+
+  _updateActualData: function(request,response){
+    this._concatAt(request.data.offset, this.actualData, response.result)
+    return response;
+  },
+
   //fetch only if we don't have the values
   _fetchOr: function(options){
     var offset = options.data.offset
@@ -88,6 +104,7 @@ module.exports = Backbone.Collection.extend({
       })
     } else {
       return this.fetch(options)
+        .then(this._updateActualData.bind(this,options))
     }
   },
 

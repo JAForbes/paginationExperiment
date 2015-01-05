@@ -171,6 +171,10 @@ module.exports = Backbone.Collection.extend({
     }
   },
 
+  initialize: function(){
+    this.actualData = [];
+  },
+
   fetchCurrent: function(){
     return this._fetchPage(this.pagination.settings.sync)
   },
@@ -221,6 +225,18 @@ module.exports = Backbone.Collection.extend({
     }
   },
 
+  _concatAt: function(at, target, concat){
+    for( var i = 0; i < concat.length; i++){
+      target[i+at] = concat[i]
+    }
+    return target;
+  },
+
+  _updateActualData: function(request,response){
+    this._concatAt(request.data.offset, this.actualData, response.result)
+    return response;
+  },
+
   //fetch only if we don't have the values
   _fetchOr: function(options){
     var offset = options.data.offset
@@ -235,6 +251,7 @@ module.exports = Backbone.Collection.extend({
       })
     } else {
       return this.fetch(options)
+        .then(this._updateActualData.bind(this,options))
     }
   },
 
@@ -289,12 +306,12 @@ module.exports = Backbone.Collection.extend({
     var offset = this.pagination.settings.sync.data.offset
     var limit = this.pagination.settings.sync.data.limit
     var padding = this.settings.padding
-    var remaining = this.toJSON.apply(
-      this.data.slice(
+    var remaining =
+      this.data.actualData.slice(
         Math.max(0,offset-padding[0]),
         offset+limit+padding[1]
       )
-    )
+
 
     //should trigger add remove etc
     this.set(remaining)
@@ -3341,9 +3358,7 @@ module.exports = R.pipe(
 
 },{}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js":[function(require,module,exports){
 module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js")
-},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\node_modules\\underscore\\underscore.js":[function(require,module,exports){
-module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js")
-},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
+},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.1.3
  * http://jquery.com/
