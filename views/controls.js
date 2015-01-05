@@ -6,6 +6,7 @@ module.exports = Backbone.View.extend({
   el: controls,
   events: {
     'change #limit': 'changeLimit',
+    'change #offset': 'changeOffset',
     'change #left': 'changeLeft',
     'change #right': 'changeRight',
     'click #current': 'clickCurrent',
@@ -24,6 +25,7 @@ module.exports = Backbone.View.extend({
 
   initialize: function(){
     this.changeLimit = _.debounce(_.partial(this.changeSetting,'pagination.settings.sync.data.limit'))
+    this.changeOffset = _.debounce(_.partial(this.changeSetting,'pagination.settings.sync.data.offset'))
     this.changeLeft = _.debounce(_.partial(this.changeSetting,'settings.padding.0'))
     this.changeRight = _.debounce(_.partial(this.changeSetting,'settings.padding.1'))
 

@@ -35,9 +35,11 @@ module.exports = Backbone.Collection.extend({
     var limit = this.pagination.settings.sync.data.limit
     var padding = this.settings.padding
     var remaining =
-      this.data.actualData.slice(
-        Math.max(0,offset-padding[0]),
-        offset+limit+padding[1]
+      _.compact(
+        this.data.actualData.slice(
+          Math.max(0,offset-padding[0]),
+          offset+limit+padding[1]
+        )
       )
 
 
