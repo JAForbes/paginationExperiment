@@ -94,9 +94,8 @@ module.exports = Backbone.Collection.extend({
   _fetchOr: function(options){
     var offset = options.data.offset
     var limit = options.data.limit
-    var remaining = this.toJSON.apply(
-      this.slice( offset, offset+limit)
-    )
+    var remaining = _.compact(this.actualData.slice( offset, offset+limit))
+
     var alreadyLoaded = remaining.length == limit
     if(alreadyLoaded){
       return Promise.resolve({
