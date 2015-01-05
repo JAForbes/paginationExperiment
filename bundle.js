@@ -162,6 +162,11 @@ module.exports = Backbone.Collection.extend({
         },
         remove: false
       },
+
+      preload: {
+        bounds: 50, //how close to the actualData edge before we preload again
+        amount: 100 //the amount to add to the actualData cache
+      }
     },
 
     state: {
@@ -274,10 +279,6 @@ var DataCollection = require('./paginatedCollection')
 
 module.exports = Backbone.Collection.extend({
 
-  settings: {
-    padding: [0,0]
-  },
-
   initialize: function(options){
     this.data = new (DataCollection.extend({ model: this.model }))
     this.data.url = this.url;
@@ -304,12 +305,11 @@ module.exports = Backbone.Collection.extend({
   updateSlice: function(){
     var offset = this.pagination.settings.sync.data.offset
     var limit = this.pagination.settings.sync.data.limit
-    var padding = this.settings.padding
     var remaining =
       _.compact(
         this.data.actualData.slice(
-          Math.max(0,offset-padding[0]),
-          offset+limit+padding[1]
+          Math.max(0,offset),
+          offset+limit
         )
       )
 
@@ -3359,9 +3359,7 @@ module.exports = R.pipe(
 
 },{}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\backbone.js":[function(require,module,exports){
 module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js")
-},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\backbone\\node_modules\\underscore\\underscore.js":[function(require,module,exports){
-module.exports=require("c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js")
-},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\node_modules\\underscore\\underscore.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
+},{"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js"}],"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\jquery\\dist\\jquery.js":[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.1.3
  * http://jquery.com/
@@ -26015,8 +26013,6 @@ module.exports = Backbone.View.extend({
   initialize: function(){
     this.changeLimit = _.debounce(_.partial(this.changeSetting,'pagination.settings.sync.data.limit'))
     this.changeOffset = _.debounce(_.partial(this.changeSetting,'pagination.settings.sync.data.offset'))
-    this.changeLeft = _.debounce(_.partial(this.changeSetting,'settings.padding.0'))
-    this.changeRight = _.debounce(_.partial(this.changeSetting,'settings.padding.1'))
 
     _.each(['Current','Prev','Next'],function(val){
       this['click'+val] = function(){

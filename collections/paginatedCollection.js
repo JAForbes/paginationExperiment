@@ -15,6 +15,11 @@ module.exports = Backbone.Collection.extend({
         },
         remove: false
       },
+
+      preload: {
+        bounds: 50, //how close to the actualData edge before we preload again
+        amount: 100 //the amount to add to the actualData cache
+      }
     },
 
     state: {

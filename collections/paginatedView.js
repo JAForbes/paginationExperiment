@@ -3,10 +3,6 @@ var DataCollection = require('./paginatedCollection')
 
 module.exports = Backbone.Collection.extend({
 
-  settings: {
-    padding: [0,0]
-  },
-
   initialize: function(options){
     this.data = new (DataCollection.extend({ model: this.model }))
     this.data.url = this.url;
@@ -33,12 +29,11 @@ module.exports = Backbone.Collection.extend({
   updateSlice: function(){
     var offset = this.pagination.settings.sync.data.offset
     var limit = this.pagination.settings.sync.data.limit
-    var padding = this.settings.padding
     var remaining =
       _.compact(
         this.data.actualData.slice(
-          Math.max(0,offset-padding[0]),
-          offset+limit+padding[1]
+          Math.max(0,offset),
+          offset+limit
         )
       )
 
