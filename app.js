@@ -3,7 +3,7 @@ var Backbone = require('backbone')
 
 var _ = require('lodash')
     window._ = _
-    
+
 var R = require('ramda')
 
 //convert the url params into a hash
@@ -51,6 +51,6 @@ Backbone.ajax('https://api.dphoto.com/auths/',{
   })
 
   content.appendChild(grid.el)
-
+  
   grid.collection.fetchCurrentPage()
 })

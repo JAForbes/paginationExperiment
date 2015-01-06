@@ -8,7 +8,19 @@ module.exports = Backbone.Collection.extend({
     this.data.url = this.url;
     this.data.parse = this.parse;
     this.pagination = this.data.pagination
+    this.fetchInitialBuffer()
+  },
 
+  fetchInitialBuffer: function(){
+    var request = {
+      data: {
+        offset: this.data.pagination.settings.sync.data.offset,
+        limit: this.data.pagination.settings.buffer.forward.amount // e.g. 100
+      },
+      remove: false
+    }
+    return this.data.fetch(request)
+      .then( this.data._updateActualData.bind(this.data,request) )
   },
 
   fetchCurrentPage: function(){
@@ -27,6 +39,7 @@ module.exports = Backbone.Collection.extend({
   },
 
   updateSlice: function(){
+    console.log('updateSlice')
     var offset = this.pagination.settings.sync.data.offset
     var limit = this.pagination.settings.sync.data.limit
     var remaining =

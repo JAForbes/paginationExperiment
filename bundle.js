@@ -92,7 +92,7 @@ var Backbone = require('backbone')
 
 var _ = require('lodash')
     window._ = _
-    
+
 var R = require('ramda')
 
 //convert the url params into a hash
@@ -140,7 +140,7 @@ Backbone.ajax('https://api.dphoto.com/auths/',{
   })
 
   content.appendChild(grid.el)
-
+  
   grid.collection.fetchCurrentPage()
 })
 
@@ -148,6 +148,12 @@ Backbone.ajax('https://api.dphoto.com/auths/',{
 var Backbone = require('Backbone')
 var _ = require('lodash')
 var Promise = require('promise')
+
+/*
+  Problems
+
+  Need to initialize buffer when ever offset is set, including init
+*/
 
 module.exports = Backbone.Collection.extend({
 
@@ -163,9 +169,9 @@ module.exports = Backbone.Collection.extend({
         remove: false
       },
 
-      preload: {
-        bounds: 50, //how close to the actualData edge before we preload again
-        amount: 100 //the amount to add to the actualData cache
+      buffer: {
+        back: { delta: 50, amount: 100, lastOffset: 0 }, //todo ensure synced to initial/teleported offset
+        forward: { delta: 50, amount: 100 ,lastOffset: 0 },
       }
     },
 
@@ -176,7 +182,7 @@ module.exports = Backbone.Collection.extend({
     }
   },
 
-  initialize: function(){
+  initialize: function(options){
     this.actualData = [];
   },
 
@@ -242,13 +248,107 @@ module.exports = Backbone.Collection.extend({
     return response;
   },
 
+  _bufferLoaded: function(actualData,offset,limit,desiredSize){
+    //actualData is sparse, compact() forces it to be contiguous
+
+    console.log(_.compact(
+
+      //how long is our cached buffer?
+      actualData.slice( offset, limit)
+
+    ).length, desiredSize,offset,limit)
+
+    return _.compact(
+
+      //how long is our cached buffer?
+      actualData.slice( offset, limit)
+
+    ).length >= desiredSize //is it long enough?
+  },
+
+  //adjust the offset and limit to request an extra buffer
+  //only adjust if the buffer isn't already available in actualData
+  _addBuffer: function(options,buffer,actualData){
+    var buffer = _.cloneDeep(buffer)
+    var offset = options.data.offset;
+    var limit = options.data.limit;
+    var backBufferNotLoaded;
+    var forwardBufferNotLoaded;
+
+
+
+    var backBufferNotLoaded = ! this._bufferLoaded(
+      actualData,
+      offset - buffer.back.amount,
+      buffer.back.lastOffset,
+      buffer.back.delta
+    ) && (offset - buffer.back.amount - buffer.back.delta > 0)
+
+    var forwardBufferNotLoaded = ! this._bufferLoaded(
+      actualData,
+      offset + limit,
+      buffer.forward.lastOffset + limit + buffer.forward.amount,
+      buffer.forward.delta
+    )
+    //extend offset/limit if not loaded
+
+    var requests = {}
+
+    if(backBufferNotLoaded) {
+      requests.back = {
+        offset: offset - buffer.back.amount - buffer.back.delta,
+        limit: buffer.back.amount
+      }
+    }
+    if(forwardBufferNotLoaded){
+      requests.forward = {
+        offset: offset + buffer.forward.delta,
+        limit: buffer.forward.amount
+      }
+    }
+
+    return requests
+  },
+
+  _fetchBuffer: function(request){
+    var request = _.cloneDeep(request)
+    var buffered = this._addBuffer(
+      request,
+      this.pagination.settings.buffer,
+      this.actualData
+    )
+    if(buffered.back) {
+      this.pagination.settings.buffer.back.lastOffset = request.data.offset
+      var backRequest = _.cloneDeep(request)
+      backRequest.data.offset = buffered.back.offset
+      backRequest.data.limit = buffered.back.limit
+      console.log('backRequest.data',backRequest.data)
+      this.fetch(backRequest)
+        .then(this._updateActualData.bind(this,backRequest))
+    }
+    if(buffered.forward) {
+      this.pagination.settings.buffer.forward.lastOffset = request.data.offset
+      var forwardRequest = _.cloneDeep(request)
+      forwardRequest.data.offset = buffered.forward.offset
+      forwardRequest.data.limit = buffered.forward.limit
+      console.log('forwardRequest.data',forwardRequest.data)
+      this.fetch(forwardRequest)
+        .then(this._updateActualData.bind(this,forwardRequest))
+    }
+  },
+
   //fetch only if we don't have the values
   _fetchOr: function(options){
-    var offset = options.data.offset
-    var limit = options.data.limit
+
+    var offset = options.data.offset;// = buffered.offset
+    var limit = options.data.limit;// = buffered.limit
+
     var remaining = _.compact(this.actualData.slice( offset, offset+limit))
 
     var alreadyLoaded = remaining.length == limit
+
+    this._fetchBuffer(options)
+
     if(alreadyLoaded){
       return Promise.resolve({
         result: remaining
@@ -269,8 +369,8 @@ module.exports = Backbone.Collection.extend({
     } else {
       return Promise.reject("Already Pending a Request")
     }
-
   }
+
 })
 
 },{"Backbone":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\Backbone\\backbone.js","lodash":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\lodash\\dist\\lodash.js","promise":"c:\\Users\\James\\src\\paginationExperiment\\node_modules\\promise\\index.js"}],"c:\\Users\\James\\src\\paginationExperiment\\collections\\paginatedView.js":[function(require,module,exports){
@@ -284,7 +384,19 @@ module.exports = Backbone.Collection.extend({
     this.data.url = this.url;
     this.data.parse = this.parse;
     this.pagination = this.data.pagination
+    this.fetchInitialBuffer()
+  },
 
+  fetchInitialBuffer: function(){
+    var request = {
+      data: {
+        offset: this.data.pagination.settings.sync.data.offset,
+        limit: this.data.pagination.settings.buffer.forward.amount // e.g. 100
+      },
+      remove: false
+    }
+    return this.data.fetch(request)
+      .then( this.data._updateActualData.bind(this.data,request) )
   },
 
   fetchCurrentPage: function(){
@@ -303,6 +415,7 @@ module.exports = Backbone.Collection.extend({
   },
 
   updateSlice: function(){
+    console.log('updateSlice')
     var offset = this.pagination.settings.sync.data.offset
     var limit = this.pagination.settings.sync.data.limit
     var remaining =
