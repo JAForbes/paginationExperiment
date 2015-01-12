@@ -7,20 +7,6 @@ var Promise = require('promise')
 
   Get _fetchPage to only request what we don't have. e.g. 99 items instead of 100
 
-  Allow _fetchPage to accept a bool that says to get buffers or not
-  Then thebuffer fetching can use _fetchpage(false), and automatically only request
-  what we don't have
-
-  No separate buffer requests.  Have a boundary to the buffer which is the fetch offset - the buffer back amount
-  and the fetch offset + fetch limit + the buffer forward amount.
-
-  Add a buffer fetch to a request if the displacement from the boundary is less than a specified minimum displacement
-
-  Set initial back boundary to Infinity, so we are always greater than the min, until the fetch offset leaves the forward boundary
-
-  See pretend logs at bottom of page
-
-  Store ranges we have already fetched, check what offset, limit we actually need to fetch from the server, and where to splice it
 */
 
 module.exports = Backbone.Collection.extend({
