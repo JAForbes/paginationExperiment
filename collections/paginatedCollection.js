@@ -5,7 +5,22 @@ var Promise = require('promise')
 /*
   Problems
 
-  Need to initialize buffer when ever offset is set, including init
+  Get _fetchPage to only request what we don't have. e.g. 99 items instead of 100
+
+  Allow _fetchPage to accept a bool that says to get buffers or not
+  Then thebuffer fetching can use _fetchpage(false), and automatically only request
+  what we don't have
+
+  No separate buffer requests.  Have a boundary to the buffer which is the fetch offset - the buffer back amount
+  and the fetch offset + fetch limit + the buffer forward amount.
+
+  Add a buffer fetch to a request if the displacement from the boundary is less than a specified minimum displacement
+
+  Set initial back boundary to Infinity, so we are always greater than the min, until the fetch offset leaves the forward boundary
+
+  See pretend logs at bottom of page
+
+  Store ranges we have already fetched, check what offset, limit we actually need to fetch from the server, and where to splice it
 */
 
 module.exports = Backbone.Collection.extend({
@@ -17,14 +32,16 @@ module.exports = Backbone.Collection.extend({
       sync: {
         data:{
           offset: 0,
-          limit: 1
+          limit: 50
         },
         remove: false
       },
+      overlap: 0.5,
 
       buffer: {
-        back: { delta: 50, amount: 100, lastOffset: 0 }, //todo ensure synced to initial/teleported offset
-        forward: { delta: 50, amount: 100 ,lastOffset: 0 },
+        boundary: [Infinity, 0],
+        size: 200,
+        minimumDisplacement: 50,
       }
     },
 
@@ -53,7 +70,6 @@ module.exports = Backbone.Collection.extend({
 
   hasNext: function(){
     return ! (this.pagination.state.lastPageDirection == 'Next' && this.pagination.state.lastRequestSize == 0)
-
   },
 
   hasPrev: function(){
@@ -64,6 +80,7 @@ module.exports = Backbone.Collection.extend({
     this.pagination.state.lastPageDirection = request.data.offset > this.pagination.settings.sync.data.offset ? 'Next' : 'Prev'
     this.pagination.state.lastRequestSize = response.result.length;
     this.pagination.settings.sync = request;
+    return response
   },
 
   _onFinishPageFetch: function(){
@@ -82,7 +99,7 @@ module.exports = Backbone.Collection.extend({
       //clone, so if the settings are incorrect, we don't lose anything
       var paginationSync = _.cloneDeep(this.pagination.settings.sync)
 
-      paginationSync.data.offset += paginationSync.data.limit * direction;
+      paginationSync.data.offset += Math.floor(paginationSync.data.limit * direction * this.pagination.settings.overlap);
       return this._fetchPage(paginationSync)
     } else {
       this._throwFetchError(directionName)
@@ -101,121 +118,75 @@ module.exports = Backbone.Collection.extend({
     return response;
   },
 
-  _bufferLoaded: function(actualData,offset,limit,desiredSize){
-    //actualData is sparse, compact() forces it to be contiguous
-
-    console.log(_.compact(
-
-      //how long is our cached buffer?
-      actualData.slice( offset, limit)
-
-    ).length, desiredSize,offset,limit)
-
-    return _.compact(
-
-      //how long is our cached buffer?
-      actualData.slice( offset, limit)
-
-    ).length >= desiredSize //is it long enough?
-  },
-
-  //adjust the offset and limit to request an extra buffer
-  //only adjust if the buffer isn't already available in actualData
-  _addBuffer: function(options,buffer,actualData){
-    var buffer = _.cloneDeep(buffer)
-    var offset = options.data.offset;
-    var limit = options.data.limit;
-    var backBufferNotLoaded;
-    var forwardBufferNotLoaded;
-
-
-
-    var backBufferNotLoaded = ! this._bufferLoaded(
-      actualData,
-      offset - buffer.back.amount,
-      buffer.back.lastOffset,
-      buffer.back.delta
-    ) && (offset - buffer.back.amount - buffer.back.delta > 0)
-
-    var forwardBufferNotLoaded = ! this._bufferLoaded(
-      actualData,
-      offset + limit,
-      buffer.forward.lastOffset + limit + buffer.forward.amount,
-      buffer.forward.delta
-    )
-    //extend offset/limit if not loaded
-
-    var requests = {}
-
-    if(backBufferNotLoaded) {
-      requests.back = {
-        offset: offset - buffer.back.amount - buffer.back.delta,
-        limit: buffer.back.amount
-      }
-    }
-    if(forwardBufferNotLoaded){
-      requests.forward = {
-        offset: offset + buffer.forward.delta,
-        limit: buffer.forward.amount
-      }
-    }
-
-    return requests
-  },
-
-  _fetchBuffer: function(request){
-    var request = _.cloneDeep(request)
-    var buffered = this._addBuffer(
-      request,
-      this.pagination.settings.buffer,
-      this.actualData
-    )
-    if(buffered.back) {
-      this.pagination.settings.buffer.back.lastOffset = request.data.offset
-      var backRequest = _.cloneDeep(request)
-      backRequest.data.offset = buffered.back.offset
-      backRequest.data.limit = buffered.back.limit
-      console.log('backRequest.data',backRequest.data)
-      this.fetch(backRequest)
-        .then(this._updateActualData.bind(this,backRequest))
-    }
-    if(buffered.forward) {
-      this.pagination.settings.buffer.forward.lastOffset = request.data.offset
-      var forwardRequest = _.cloneDeep(request)
-      forwardRequest.data.offset = buffered.forward.offset
-      forwardRequest.data.limit = buffered.forward.limit
-      console.log('forwardRequest.data',forwardRequest.data)
-      this.fetch(forwardRequest)
-        .then(this._updateActualData.bind(this,forwardRequest))
-    }
+  _isInitialDataSetLoaded: function(start,end){
+    var available = this.actualData.slice(start, end)
+    var remaining = _.compact(available)
+    return remaining.length == end-start
   },
 
   //fetch only if we don't have the values
   _fetchOr: function(options){
+    options = _.cloneDeep(options)
+    var displaced = this.displacement(options)
+    var minDisplacement = this.pagination.settings.buffer.minimumDisplacement
+    var bufferBoundary = this.pagination.settings.buffer.boundary
+    var shouldFetch = false;
+    var start = options.data.offset;
+    var end = start + options.data.limit;
+    var bufferSize = this.pagination.settings.buffer.size;
+    if(displaced[0] < minDisplacement || displaced[1] < minDisplacement){
+      if(start - bufferSize > 0){
+        bufferBoundary[0] = start - bufferSize
+      } else {
+        bufferBoundary[0] = Infinity;
+      }
 
-    var offset = options.data.offset;// = buffered.offset
-    var limit = options.data.limit;// = buffered.limit
+      bufferBoundary[1] = end + bufferSize;
+      shouldFetch = true;
+    }
 
-    var remaining = _.compact(this.actualData.slice( offset, offset+limit))
+    //convert start/end to offset/limit
+    options.data.offset = bufferBoundary[0]
 
-    var alreadyLoaded = remaining.length == limit
+    if(options.data.offset == Infinity){
+      options.data.offset = 0
+    }
 
-    this._fetchBuffer(options)
+    options.data.limit = bufferBoundary[1] - options.data.offset
 
-    if(alreadyLoaded){
-      return Promise.resolve({
-        result: remaining
-      })
-    } else {
-      return this.fetch(options)
+
+
+    if(shouldFetch){
+      var bufferResponse = this.fetch(options)
         .then(this._updateActualData.bind(this,options))
     }
+    if( this._isInitialDataSetLoaded(start,end) ){
+      var result = this.actualData.slice(start,end);
+    return result.length && Promise.resolve({ result: result }) || bufferResponse
+    } else {
+      return bufferResponse || Promise.resolve({ result: this.actualData.slice(start,end) })
+    }
+  },
+
+  displacement: function(options){
+    var start = options.data.offset;
+    var end = start + options.data.limit;
+    var bufferBoundary = this.pagination.settings.buffer.boundary
+
+    var bufferLeft = bufferBoundary[0] - start
+    if(bufferLeft < 0){
+      bufferLeft = Infinity
+    }
+    return [
+      bufferLeft,
+      bufferBoundary[1] - end
+    ]
+
   },
 
   _fetchPage: function(options){
     if(!this.pagination.state.pending){
       this.pagination.state.pending = true;
-      options.at = options.data.offset
       return this._fetchOr(options)
         .then(this._updatePaginationStates.bind(this,options))
         .then(this._onFinishPageFetch.bind(this))
